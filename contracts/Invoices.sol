@@ -87,4 +87,49 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
 
         emit PaymentProcessed(paymentHash);
     }
+
+    function requestPayment(
+        address token,
+        string memory paymentHash,
+        einput encryptedAmount,
+        bytes calldata inputProofAmount,
+        address sender
+    ) external {
+        require(!payments[paymentHash].isProcessed, "Payment already exists");
+        euint64 value = TFHE.asEuint64(encryptedAmount, inputProofAmount);
+
+        TFHE.allowThis(value);
+
+        payments[paymentHash] = EncryptedPayment({
+            token: token,
+            amount: value,
+            isProcessed: false,
+            sender: sender,
+            receiver: msg.sender
+        });
+
+        emit PaymentRequestStored(paymentHash);
+    }
+
+    function payRequest(string memory paymentHash) external {
+        require(payments[paymentHash].sender == msg.sender, "You are not the receiver of this invoice");
+        TFHE.allowThis(payments[paymentHash].amount);
+
+        ConfidentialERC20 erc20 = ConfidentialERC20(payments[paymentHash].token);
+        TFHE.allowThis(payments[paymentHash].amount);
+        TFHE.allow(payments[paymentHash].amount, address(erc20));
+
+        erc20.transferFrom(msg.sender, address(this), payments[paymentHash].amount);
+
+        bool success = erc20.transferFrom(msg.sender, payments[paymentHash].receiver, payments[paymentHash].amount);
+        require(success, "Transfer failed");
+
+        payments[paymentHash].isProcessed = true;
+
+        emit PaymentProcessed(paymentHash);
+    }
+
+    function getPayment(string memory paymentHash) external view returns (EncryptedPayment memory) {
+        return payments[paymentHash];
+    }
 }

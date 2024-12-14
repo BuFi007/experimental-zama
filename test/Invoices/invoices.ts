@@ -124,4 +124,41 @@ describe("ConfidentialPayments", function () {
       "PaymentProcessed",
     );
   });
+
+  it.only("should store claim a payment successfully", async function () {
+    const transaction = await this.erc20.mint(this.signers.alice, 10000);
+    await transaction.wait();
+    const inputAlice = this.fhevm.createEncryptedInput(this.erc20ContractAddress, this.signers.alice.address);
+    inputAlice.add64(1337);
+    const encryptedAllowanceAmount = await inputAlice.encrypt();
+    const tx = await this.erc20["approve(address,bytes32,bytes)"](
+      this.paymentsContractAddress,
+      encryptedAllowanceAmount.handles[0],
+      encryptedAllowanceAmount.inputProof,
+    );
+    await tx.wait();
+
+    const inputPayment = this.fhevm.createEncryptedInput(this.paymentsContractAddress, this.signers.bob.address);
+    inputPayment.add64(1337);
+    const encryptedPaymentAmount = await inputPayment.encrypt();
+
+    await expect(
+      this.payments
+        .connect(this.signers.bob)
+        .requestPayment(
+          this.erc20ContractAddress,
+          "paymentHash",
+          encryptedPaymentAmount.handles[0],
+          encryptedPaymentAmount.inputProof,
+          this.signers.alice.address,
+        ),
+    )
+      .to.emit(this.payments, "PaymentRequestStored")
+      .withArgs("paymentHash");
+
+    await expect(this.payments.connect(this.signers.alice).payRequest("paymentHash")).to.emit(
+      this.payments,
+      "PaymentProcessed",
+    );
+  });
 });
