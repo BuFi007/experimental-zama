@@ -6,6 +6,7 @@ import { deployConfidentialERC20Fixture } from "../confidentialERC20/Confidentia
 import { createInstance } from "../instance";
 import { reencryptEuint64 } from "../reencrypt";
 import { getSigners, initSigners } from "../signers";
+import { debug } from "../utils";
 import { deployConfidentialPaymentsFixture } from "./invoices.fixture";
 
 describe("ConfidentialPayments", function () {
@@ -41,6 +42,7 @@ describe("ConfidentialPayments", function () {
       this.erc20ContractAddress,
     );
     console.log("balanceAlice", balanceAlice);
+
     const input = this.fhevm.createEncryptedInput(this.erc20ContractAddress, this.signers.alice.address);
     input.add64(1337);
     const encryptedTransferAmount = await input.encrypt();
@@ -50,11 +52,11 @@ describe("ConfidentialPayments", function () {
       encryptedTransferAmount.inputProof,
     );
     const t2 = await tx.wait();
+
     expect(t2?.status).to.eq(1);
   });
 
   it.only("should store a new payment successfully", async function () {
-    // Create encrypted amount
     const transaction = await this.erc20.mint(this.signers.alice, 10000);
     await transaction.wait();
     const inputAlice = this.fhevm.createEncryptedInput(this.erc20ContractAddress, this.signers.alice.address);
@@ -117,8 +119,9 @@ describe("ConfidentialPayments", function () {
       .to.emit(this.payments, "PaymentStored")
       .withArgs("paymentHash");
 
-    const tx2 = await this.payments.connect(this.signers.bob).claimPayment("paymentHash");
-    // await tx2.wait();
-    // expect(await this.erc20.balanceOf(this.signers.bob)).to.equal(1337);
+    await expect(this.payments.connect(this.signers.bob).claimPayment("paymentHash")).to.emit(
+      this.payments,
+      "PaymentProcessed",
+    );
   });
 });
