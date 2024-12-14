@@ -25,18 +25,8 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
         address receiver;
     }
 
-    struct EncryptedPaymentRequest {
-        euint64 amount;
-        bool isProcessed;
-        address token;
-        address sender;
-        address receiver;
-        bytes inputProofAmount;
-    }
-
     // Mapping from payment hash to encrypted payment details
     mapping(string => EncryptedPayment) public payments;
-    mapping(string => EncryptedPaymentRequest) public paymentRequests;
 
     constructor() Ownable(msg.sender) {}
 
@@ -50,6 +40,7 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
     /// @param encryptedAmount The encrypted amount of the payment
     /// @param inputProofAmount The proof of the encrypted amount
     /// @param receiver The receiver of the payment
+    /// TODO: after the hackathon, encrypt the payment hash using ebytes and the addresses
     function storePayment(
         address token,
         string memory paymentHash,
@@ -84,16 +75,11 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
     /// @param paymentHash The unique hash of the payment
     function claimPayment(string memory paymentHash) external {
         require(payments[paymentHash].receiver == msg.sender, "You are not the receiver of this invoice");
-        // TFHE.allowThis(payments[paymentHash].amount);
-        // TFHE.allow(payments[paymentHash].amount, msg.sender);
+
         TFHE.allowThis(payments[paymentHash].amount);
-        // TFHE.allow(payments[paymentHash].amount, address(payments[paymentHash].token));
-        // TFHE.allow(payments[paymentHash].amount, address(payments[paymentHash].receiver));
-        // TFHE.debug.decrypt(payments[paymentHash].amount);
+
         euint64 value = payments[paymentHash].amount;
-        // TFHE.allow(value, msg.sender);
-        // TFHE.allowTransient(value, msg.sender);
-        // TFHE.allow(value, address(payments[paymentHash].token));
+
         ConfidentialERC20 erc20 = ConfidentialERC20(payments[paymentHash].token);
         bool success = erc20.transfer(msg.sender, value);
         require(success, "Transfer failed");
