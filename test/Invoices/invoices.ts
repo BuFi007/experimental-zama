@@ -125,7 +125,7 @@ describe("ConfidentialPayments", function () {
     );
   });
 
-  it.only("should store claim a payment successfully", async function () {
+  it.only("should request a payment successfully", async function () {
     const transaction = await this.erc20.mint(this.signers.alice, 10000);
     await transaction.wait();
     const inputAlice = this.fhevm.createEncryptedInput(this.erc20ContractAddress, this.signers.alice.address);

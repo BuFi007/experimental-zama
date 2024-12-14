@@ -88,6 +88,11 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
         emit PaymentProcessed(paymentHash);
     }
 
+    /// @notice Request a payment
+    /// @param paymentHash The unique hash of the payment
+    /// @param encryptedAmount The encrypted amount of the payment
+    /// @param inputProofAmount The proof of the encrypted amount
+    /// @param sender The sender of the payment
     function requestPayment(
         address token,
         string memory paymentHash,
@@ -111,6 +116,8 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
         emit PaymentRequestStored(paymentHash);
     }
 
+    /// @notice Pay a request
+    /// @param paymentHash The unique hash of the payment
     function payRequest(string memory paymentHash) external {
         require(payments[paymentHash].sender == msg.sender, "You are not the receiver of this invoice");
         TFHE.allowThis(payments[paymentHash].amount);
