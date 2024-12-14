@@ -1,9 +1,12 @@
 import { expect } from "chai";
+import { ZeroAddress } from "ethers";
 import { ethers } from "hardhat";
 
+import { deployConfidentialERC20Fixture } from "../confidentialERC20/ConfidentialERC20.fixture";
 import { createInstance } from "../instance";
+import { reencryptEuint64 } from "../reencrypt";
 import { getSigners, initSigners } from "../signers";
-import { deployPeanutConfidentialPaymentsFixture } from "./invoices.fixture";
+import { deployConfidentialPaymentsFixture } from "./invoices.fixture";
 
 describe("ConfidentialPayments", function () {
   before(async function () {
@@ -12,134 +15,110 @@ describe("ConfidentialPayments", function () {
   });
 
   beforeEach(async function () {
-    const contract = await deployPeanutConfidentialPaymentsFixture();
-    this.contractAddress = await contract.getAddress();
-    this.contractAddress = ethers.getAddress(this.contractAddress);
+    ///
+    const contract = await deployConfidentialPaymentsFixture();
     this.payments = contract;
+    this.paymentsContractAddress = await contract.getAddress();
+
+    const erc20Contract = await deployConfidentialERC20Fixture();
+    this.erc20ContractAddress = await erc20Contract.getAddress();
+    this.erc20 = erc20Contract;
+
     this.fhevm = await createInstance();
   });
 
-  const paymentHash = ethers.keccak256(ethers.toUtf8Bytes("test-payment"));
+  it.only("should store a new payment successfully", async function () {
+    // Create encrypted amount
+    const transaction = await this.erc20.mint(this.signers.alice, 1000);
+    await transaction.wait();
+
+    // Reencrypt Alice's balance
+    const balanceHandleAlice = await this.erc20.balanceOf(this.signers.alice);
+    const balanceAlice = await reencryptEuint64(
+      this.signers.alice,
+      this.fhevm,
+      balanceHandleAlice,
+      this.erc20ContractAddress,
+    );
+    console.log("balanceAlice", balanceAlice);
+    const input = this.fhevm.createEncryptedInput(this.erc20ContractAddress, this.signers.alice.address);
+    input.add64(1337);
+    const encryptedTransferAmount = await input.encrypt();
+    const tx = await this.erc20["transfer(address,bytes32,bytes)"](
+      this.signers.bob,
+      encryptedTransferAmount.handles[0],
+      encryptedTransferAmount.inputProof,
+    );
+    const t2 = await tx.wait();
+    expect(t2?.status).to.eq(1);
+  });
 
   it.only("should store a new payment successfully", async function () {
     // Create encrypted amount
-    const alicePayments = this.payments.connect(this.signers.alice);
+    const transaction = await this.erc20.mint(this.signers.alice, 10000);
+    await transaction.wait();
+    const inputAlice = this.fhevm.createEncryptedInput(this.erc20ContractAddress, this.signers.alice.address);
+    inputAlice.add64(1337);
+    const encryptedAllowanceAmount = await inputAlice.encrypt();
+    const tx = await this.erc20["approve(address,bytes32,bytes)"](
+      this.paymentsContractAddress,
+      encryptedAllowanceAmount.handles[0],
+      encryptedAllowanceAmount.inputProof,
+    );
+    await tx.wait();
 
-    const amountInput = this.fhevm.createEncryptedInput(this.contractAddress, this.signers.alice.address);
-    amountInput.add64(1000);
-    amountInput.add4(1);
-    const encryptedAmount = await amountInput.encrypt();
+    const inputPayment = this.fhevm.createEncryptedInput(this.paymentsContractAddress, this.signers.alice.address);
+    inputPayment.add64(1337);
+    const encryptedPaymentAmount = await inputPayment.encrypt();
 
     await expect(
-      this.payments.storePayment(
-        paymentHash,
-        encryptedAmount.handles[0],
-        encryptedAmount.handles[1],
-        encryptedAmount.inputProof,
-        this.signers.alice.address,
-        this.signers.bob.address,
-      ),
+      this.payments
+        .connect(this.signers.alice)
+        .storePayment(
+          this.erc20ContractAddress,
+          "paymentHash",
+          encryptedPaymentAmount.handles[0],
+          encryptedPaymentAmount.inputProof,
+          this.signers.bob.address,
+        ),
     )
       .to.emit(this.payments, "PaymentStored")
-      .withArgs(paymentHash);
+      .withArgs("paymentHash");
   });
 
-  //   it("should not allow storing duplicate payments", async function () {
-  //     // Create encrypted amount
-  //     const alicePayments = this.payments.connect(this.signers.alice);
+  it.only("should store claim a payment successfully", async function () {
+    const transaction = await this.erc20.mint(this.signers.alice, 10000);
+    await transaction.wait();
+    const inputAlice = this.fhevm.createEncryptedInput(this.erc20ContractAddress, this.signers.alice.address);
+    inputAlice.add64(1337);
+    const encryptedAllowanceAmount = await inputAlice.encrypt();
+    const tx = await this.erc20["approve(address,bytes32,bytes)"](
+      this.paymentsContractAddress,
+      encryptedAllowanceAmount.handles[0],
+      encryptedAllowanceAmount.inputProof,
+    );
+    await tx.wait();
 
-  //     const amountInput = this.fhevm.createEncryptedInput(this.contractAddress, this.signers.alice.address);
-  //     amountInput.add64(1000);
-  //     amountInput.add4(1);
-  //     const encryptedAmount = await amountInput.encrypt();
+    const inputPayment = this.fhevm.createEncryptedInput(this.paymentsContractAddress, this.signers.alice.address);
+    inputPayment.add64(1337);
+    const encryptedPaymentAmount = await inputPayment.encrypt();
 
-  //     // const paymentHash = ethers.keccak256(ethers.toUtf8Bytes("test-payment"));
+    await expect(
+      this.payments
+        .connect(this.signers.alice)
+        .storePayment(
+          this.erc20ContractAddress,
+          "paymentHash",
+          encryptedPaymentAmount.handles[0],
+          encryptedPaymentAmount.inputProof,
+          this.signers.bob.address,
+        ),
+    )
+      .to.emit(this.payments, "PaymentStored")
+      .withArgs("paymentHash");
 
-  //     this.payments.storePayment(
-  //       paymentHash,
-  //       encryptedAmount.handles[0],
-  //       encryptedAmount.handles[1],
-  //       encryptedAmount.inputProof,
-  //       this.signers.alice.address,
-  //       this.signers.bob.address,
-  //     ),
-  //       // Store payment
-  //       await expect(
-  //         this.payments.storePayment(
-  //           paymentHash,
-  //           encryptedAmount.handles[0],
-  //           encryptedAmount.handles[1],
-  //           encryptedAmount.inputProof,
-  //           this.signers.alice.address,
-  //           this.signers.bob.address,
-  //         ),
-  //       ).to.be.revertedWith("Payment already exists");
-  //   });
-
-  //   it("should process payment correctly", async function () {
-  //     const alicePayments = this.payments.connect(this.signers.alice);
-
-  //     const amountInput = this.fhevm.createEncryptedInput(this.contractAddress, this.signers.alice.address);
-  //     amountInput.add64(1000);
-  //     const encryptedAmount = await amountInput.encrypt();
-
-  //     const typeInput = this.fhevm.createEncryptedInput(this.contractAddress, this.signers.alice.address);
-  //     typeInput.add4(1);
-  //     const encryptedType = await typeInput.encrypt();
-
-  //     const paymentHash = ethers.keccak256(ethers.toUtf8Bytes("test-payment"));
-
-  //     await this.payments.storePayment(
-  //       paymentHash,
-  //       encryptedAmount.handles[0],
-  //       encryptedType.handles[0],
-  //       encryptedAmount.inputProof,
-  //       encryptedType.inputProof,
-  //       this.signers.alice.address,
-  //       this.signers.bob.address,
-  //     );
-
-  //     // Process payment
-  //     await expect(this.payments.processPayment(paymentHash))
-  //       .to.emit(this.payments, "PaymentProcessed")
-  //       .withArgs(paymentHash);
-
-  //     // Try to process again
-  //     await expect(this.payments.processPayment(paymentHash)).to.be.revertedWith("Payment already processed");
-  //   });
-
-  //   it("should only allow sender/receiver to access payment details", async function () {
-  //     // Store payment
-  //     const alicePayments = this.payments.connect(this.signers.alice);
-  //     const amountInput = this.fhevm.createEncryptedInput(this.contractAddress, this.signers.alice.address);
-  //     amountInput.add64(1000);
-  //     const encryptedAmount = await amountInput.encrypt();
-
-  //     const typeInput = this.fhevm.createEncryptedInput(this.contractAddress, this.signers.alice.address);
-  //     typeInput.add4(1);
-  //     const encryptedType = await typeInput.encrypt();
-
-  //     const paymentHash = ethers.keccak256(ethers.toUtf8Bytes("test-payment"));
-  //     this.signers.alice.address = ethers.getAddress(this.signers.alice.address);
-  //     this.signers.bob.address = ethers.getAddress(this.signers.bob.address);
-
-  //     await this.payments.storePayment(
-  //       paymentHash,
-  //       encryptedAmount.handles[0],
-  //       encryptedType.handles[0],
-  //       encryptedAmount.inputProof,
-  //       encryptedType.inputProof,
-  //       this.signers.alice.address,
-  //       this.signers.bob.address,
-  //     );
-
-  //     // Connect as unauthorized user and try to access details
-  //     const carolPayments = this.payments.connect(this.signers.carol);
-  //     await expect(carolPayments.getInvoiceAmount(paymentHash)).to.be.revertedWith(
-  //       "You are not the sender or receiver of this invoice",
-  //     );
-  //     await expect(carolPayments.getInvoiceType(paymentHash)).to.be.revertedWith(
-  //       "You are not the sender or receiver of this invoice",
-  //     );
-  //   });
+    const tx2 = await this.payments.connect(this.signers.bob).claimPayment("paymentHash");
+    // await tx2.wait();
+    // expect(await this.erc20.balanceOf(this.signers.bob)).to.equal(1337);
+  });
 });

@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 
-export async function deployPeanutConfidentialPaymentsFixture() {
+export async function deployConfidentialPaymentsFixture() {
   const factory = await ethers.getContractFactory("ConfidentialPayments");
   const contract = await factory.deploy();
   await contract.waitForDeployment();
