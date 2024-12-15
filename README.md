@@ -1,4 +1,4 @@
-# Hardhat Template [![Open in Gitpod][gitpod-badge]][gitpod] [![Github Actions][gha-badge]][gha] [![Hardhat][hardhat-badge]][hardhat] [![License: MIT][license-badge]][license]
+# 🔐 Confidential Payments System [![Open in Gitpod][gitpod-badge]][gitpod] [![Github Actions][gha-badge]][gha] [![Hardhat][hardhat-badge]][hardhat] [![License: MIT][license-badge]][license]
 
 [gitpod]: https://gitpod.io/#https://github.com/zama-ai/fhevm-hardhat-template
 [gitpod-badge]: https://img.shields.io/badge/Gitpod-Open%20in%20Gitpod-FFB45B?logo=gitpod
@@ -9,62 +9,43 @@
 [license]: https://opensource.org/licenses/MIT
 [license-badge]: https://img.shields.io/badge/License-MIT-blue.svg
 
-A Hardhat-based template for developing Solidity smart contracts, with sensible defaults.
+A fully encrypted payment system built on Zama's FHEVM that enables confidential transactions with invoice management capabilities.
 
-- [Hardhat](https://github.com/nomiclabs/hardhat): compile, run and test smart contracts
-- [TypeChain](https://github.com/ethereum-ts/TypeChain): generate TypeScript bindings for smart contracts
-- [Ethers](https://github.com/ethers-io/ethers.js/): renowned Ethereum library and wallet implementation
-- [Solhint](https://github.com/protofire/solhint): code linter
-- [Solcover](https://github.com/sc-forks/solidity-coverage): code coverage
-- [Prettier Plugin Solidity](https://github.com/prettier-solidity/prettier-plugin-solidity): code formatter
+## 🌟 Features
 
-## Getting Started
+- 💸 **Store Payments**: Securely store encrypted payments with specified amounts and receivers
+- 📥 **Claim Payments**: Recipients can claim their payments when ready
+- 📤 **Request Payments**: Create payment requests with encrypted amounts
+- 💰 **Pay Requests**: Fulfill payment requests with encrypted transfers
+- 🔒 **Full Privacy**: All payment amounts are encrypted using FHE technology
 
-Click the [`Use this template`](https://github.com/zama-ai/fhevm-hardhat-template/generate) button at the top of the
-page to create a new repository with this repo as the initial state.
+## 🏗 System Architecture
 
-## Features
+The system consists of four main operations:
 
-This template builds upon the frameworks and libraries mentioned above, so for details about their specific features,
-please consult their respective documentations.
+1. **Store Payment** 📝
+   - Sender encrypts payment amount
+   - Funds are locked in contract
+   - Payment details stored with receiver address
 
-For example, for Hardhat, you can refer to the [Hardhat Tutorial](https://hardhat.org/tutorial) and the
-[Hardhat Docs](https://hardhat.org/docs). You might be in particular interested in reading the
-[Testing Contracts](https://hardhat.org/tutorial/testing-contracts) section.
+2. **Claim Payment** 🎯
+   - Receiver verifies payment
+   - Encrypted funds transfer to receiver
+   - Payment marked as processed
 
-### Sensible Defaults
+3. **Request Payment** 📨
+   - Receiver creates encrypted payment request
+   - Request stored with sender address
+   - Notification emitted on-chain
 
-This template comes with sensible default configurations in the following files:
+4. **Pay Request** 💳
+   - Sender reviews request
+   - Approves and transfers encrypted amount
+   - Request marked as fulfilled
 
-```text
-├── .editorconfig
-├── .eslintignore
-├── .eslintrc.yml
-├── .gitignore
-├── .prettierignore
-├── .prettierrc.yml
-├── .solcover.js
-├── .solhint.json
-└── hardhat.config.ts
-```
+## 🚀 Getting Started
 
-### VSCode Integration
-
-This template is IDE agnostic, but for the best user experience, you may want to use it in VSCode alongside Nomic
-Foundation's [Solidity extension](https://marketplace.visualstudio.com/items?itemName=NomicFoundation.hardhat-solidity).
-
-### GitHub Actions
-
-This template comes with GitHub Actions pre-configured. Your contracts will be linted and tested on every push and pull
-request made to the `main` branch.
-
-Note though that to make this work, you must use your `INFURA_API_KEY` and your `MNEMONIC` as GitHub secrets.
-
-You can edit the CI script in [.github/workflows/ci.yml](./.github/workflows/ci.yml).
-
-## Usage
-
-### Pre Requisites
+### Prerequisites
 
 Install [pnpm](https://pnpm.io/installation)
 
