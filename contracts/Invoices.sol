@@ -35,7 +35,7 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
     /// @param encryptedAmount The encrypted amount of the payment
     /// @param inputProofAmount The proof of the encrypted amount
     /// @param receiver The receiver of the payment
-    /// TODO: after the hackathon, encrypt the payment hash using ebytes and the addresses
+    /// TODO: after the hackathon, encrypt the payment hash and the addresses using ebytes & eaddress
     function storePayment(
         address token,
         string memory paymentHash,
@@ -71,7 +71,7 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
         euint64 value = payments[paymentHash].amount;
 
         ConfidentialERC20 erc20 = ConfidentialERC20(payments[paymentHash].token);
-        erc20.transfer(msg.sender, value);
+        require(erc20.transfer(msg.sender, value), "Transfer failed");
 
         payments[paymentHash].isProcessed = true;
 
@@ -110,10 +110,8 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
     /// @param paymentHash The unique hash of the payment
     function payRequest(string memory paymentHash) external {
         require(payments[paymentHash].sender == msg.sender, "You are not the receiver of this invoice");
-        TFHE.allowThis(payments[paymentHash].amount);
 
         ConfidentialERC20 erc20 = ConfidentialERC20(payments[paymentHash].token);
-        TFHE.allowThis(payments[paymentHash].amount);
         TFHE.allow(payments[paymentHash].amount, address(erc20));
 
         erc20.transferFrom(msg.sender, payments[paymentHash].receiver, payments[paymentHash].amount);
