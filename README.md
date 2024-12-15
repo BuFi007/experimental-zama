@@ -169,6 +169,9 @@ This would automatically deploy an instance of the `MyConfidentialERC20` example
 pnpm mint-sepolia
 ```
 
+> [!Note]
+> The current deployed contract address on Sepolia is: `0xde7f1B5121cc8527a07196EA9f4503DCebA35518`
+
 ### Etherscan verification
 
 If you are using a real instance of the fhEVM, you can verify your deployed contracts on the Etherscan explorer. 
