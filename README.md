@@ -123,6 +123,12 @@ network instance. To run the tests in mocked mode, you can use directly the foll
 pnpm test
 ```
 
+> [!Note]
+> The currently deployed contracts on Sepolia are:
+> - Confidential Payments: `0xA9fB4A1a42BA87e1590cd0F55A11a96071d2D943`
+> - ERC20: `0xa5e6b43506154f54F63Cd57Cc85c971b431Dc161`
+
+
 You can still use all the usual specific [hardhat network methods](https://hardhat.org/hardhat-network/docs/reference#hardhat-network-methods), such as `evm_snapshot`, `evm_mine`, `evm_increaseTime`, etc, which are very helpful in a testing context. Another useful hardhat feature, is the [console.log](https://hardhat.org/hardhat-network/docs/reference#console.log) function which can be used in fhevm smart contracts in mocked mode as well.
 
 To analyze the coverage of the tests (in mocked mode necessarily, as this cannot be done on the real fhEVM node), you
@@ -170,7 +176,9 @@ pnpm mint-sepolia
 ```
 
 > [!Note]
-> The current deployed contract address on Sepolia is: `0xde7f1B5121cc8527a07196EA9f4503DCebA35518`
+> The currently deployed contracts on Sepolia are:
+> - Confidential Payments: `0xA9fB4A1a42BA87e1590cd0F55A11a96071d2D943`
+> - ERC20: `0xa5e6b43506154f54F63Cd57Cc85c971b431Dc161`
 
 ### Etherscan verification
 
