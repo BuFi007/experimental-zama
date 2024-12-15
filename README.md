@@ -124,6 +124,7 @@ pnpm test
 ```
 
 > [!Note]
+> deployed with remix.org, i dont use mnemonic, i use private key
 > The currently deployed contracts on Sepolia are:
 > - Confidential Payments: `0xA9fB4A1a42BA87e1590cd0F55A11a96071d2D943`
 > - ERC20: `0xa5e6b43506154f54F63Cd57Cc85c971b431Dc161`
