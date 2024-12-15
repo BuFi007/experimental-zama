@@ -5,12 +5,7 @@ pragma solidity ^0.8.24;
 import "fhevm/lib/TFHE.sol";
 import "fhevm/config/ZamaFHEVMConfig.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-// import "./mock/ConfidentialERC20.sol";
 import "fhevm-contracts/contracts/token/ERC20/extensions/ConfidentialERC20Mintable.sol";
-
-//import "fhevm-contracts/contracts/token/ERC20/extensions/ConfidentialERC20Mintable.sol";
-
-// import "fhevm-contracts/contracts/token/ERC20/extensions/ConfidentialERC20Mintable.sol";
 
 /// @notice This contract implements an encrypted payment system for Peanut Protocol with confidential data
 /// @dev Uses FHE to encrypt payment details and balances
@@ -48,7 +43,7 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
         bytes calldata inputProofAmount,
         address receiver
     ) external {
-        require(!payments[paymentHash].isProcessed, "Payment already exists");
+        require(payments[paymentHash].receiver == address(0), "Payment already exists");
         euint64 value = TFHE.asEuint64(encryptedAmount, inputProofAmount);
 
         ConfidentialERC20 erc20 = ConfidentialERC20(token);
@@ -56,9 +51,6 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
         TFHE.allow(value, address(erc20));
 
         erc20.transferFrom(msg.sender, address(this), value);
-
-        bool success = erc20.transferFrom(msg.sender, address(this), value);
-        require(success, "Transfer failed");
 
         payments[paymentHash] = EncryptedPayment({
             token: token,
@@ -76,13 +68,11 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
     function claimPayment(string memory paymentHash) external {
         require(payments[paymentHash].receiver == msg.sender, "You are not the receiver of this invoice");
 
-        TFHE.allowThis(payments[paymentHash].amount);
-
         euint64 value = payments[paymentHash].amount;
 
         ConfidentialERC20 erc20 = ConfidentialERC20(payments[paymentHash].token);
-        bool success = erc20.transfer(msg.sender, value);
-        require(success, "Transfer failed");
+        erc20.transfer(msg.sender, value);
+
         payments[paymentHash].isProcessed = true;
 
         emit PaymentProcessed(paymentHash);
@@ -100,7 +90,7 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
         bytes calldata inputProofAmount,
         address sender
     ) external {
-        require(!payments[paymentHash].isProcessed, "Payment already exists");
+        require(payments[paymentHash].receiver == address(0), "Payment already exists");
         euint64 value = TFHE.asEuint64(encryptedAmount, inputProofAmount);
 
         TFHE.allowThis(value);
@@ -126,10 +116,7 @@ contract ConfidentialPayments is SepoliaZamaFHEVMConfig, Ownable {
         TFHE.allowThis(payments[paymentHash].amount);
         TFHE.allow(payments[paymentHash].amount, address(erc20));
 
-        erc20.transferFrom(msg.sender, address(this), payments[paymentHash].amount);
-
-        bool success = erc20.transferFrom(msg.sender, payments[paymentHash].receiver, payments[paymentHash].amount);
-        require(success, "Transfer failed");
+        erc20.transferFrom(msg.sender, payments[paymentHash].receiver, payments[paymentHash].amount);
 
         payments[paymentHash].isProcessed = true;
 
